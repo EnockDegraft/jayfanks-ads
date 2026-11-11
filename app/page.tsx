@@ -2,182 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-
-const products = [
-  {
-    category: "Hair care",
-    name: "Mmofra Leave-In Detangler",
-    size: "250ml",
-    price: "GH₵40.00",
-    description:
-      "A leave-in detangler from the Jay Fanks Mmofra hair-care range.",
-    image: "/products/mmofra-leave-in-detangler.png",
-    productUrl: "https://jayfanks.com/product/jay-fanks-mmofra-leave-in-detangler-250ml/",
-    interest: "mmofra-leave-in-detangler"
-  },
-  {
-    category: "Skin care",
-    name: "Jay Fanks Body Butter",
-    size: "300ml",
-    price: "",
-    description:
-      "A 300ml Body Butter from the Jay Fanks skin-care collection.",
-    image: "/products/body-butter.png",
-    productUrl: "https://jayfanks.com/product/jay-fanks-body-butter-300ml/",
-    interest: "body-butter"
-  },
-  {
-    category: "Hair care",
-    name: "Mmofra Hair Growth Oil",
-    size: "100ml",
-    price: "GH₵60.00",
-    description:
-      "A 100ml hair oil from the Jay Fanks Mmofra collection.",
-    image: "/products/mmofra-hair-growth-oil.jpg",
-    productUrl: "https://jayfanks.com/product/mmofra-hair-growth-oil-100ml/",
-    interest: "mmofra-hair-growth-oil"
-  },
-  {
-    category: "Skin care",
-    name: "Body Butter",
-    size: "200ml",
-    price: "GH₵50.00",
-    description: "A 200ml Body Butter from the Jay Fanks skin-care collection.",
-    image: "/products/body-butter-200ml.jpg",
-    productUrl: "https://jayfanks.com/product/body-butter-200ml/",
-    interest: "body-butter-200ml"
-  },
-  {
-    category: "Skin care",
-    name: "Body Butter",
-    size: "500ml",
-    price: "GH₵100.00",
-    description: "A 500ml Body Butter from the Jay Fanks skin-care collection.",
-    image: "/products/body-butter-500ml.jpg",
-    productUrl: "https://jayfanks.com/product/body-butter-500ml/",
-    interest: "body-butter-500ml"
-  },
-  {
-    category: "Hair care",
-    name: "Conditioner",
-    size: "500ml",
-    price: "GH₵70.00",
-    description: "A 500ml conditioner from the Jay Fanks hair-care collection.",
-    image: "/products/conditioner-500ml.jpg",
-    productUrl: "https://jayfanks.com/product/conditioner-500ml/",
-    interest: "conditioner-500ml"
-  },
-  {
-    category: "Hair care",
-    name: "Hair Butter",
-    size: "250ml",
-    price: "GH₵60.00",
-    description: "A 250ml Hair Butter from the Jay Fanks hair-care collection.",
-    image: "/products/hair-butter-250ml.jpg",
-    productUrl: "https://jayfanks.com/product/hair-butter-250ml/",
-    interest: "hair-butter-250ml"
-  },
-  {
-    category: "Hair care",
-    name: "Hair Butter",
-    size: "300ml",
-    price: "GH₵60.00",
-    description: "A 300ml Hair Butter from the Jay Fanks hair-care collection.",
-    image: "/products/hair-butter-300ml.jpg",
-    productUrl: "https://jayfanks.com/product/hair-butter-300ml/",
-    interest: "hair-butter-300ml"
-  },
-  {
-    category: "Hair care",
-    name: "Hair Growth Oil",
-    size: "100ml",
-    price: "GH₵60.00",
-    description: "A 100ml Hair Growth Oil from the Jay Fanks hair-care collection.",
-    image: "/products/hair-growth-oil-100ml.jpg",
-    productUrl: "https://jayfanks.com/product/hair-growth-oil-100ml/",
-    interest: "hair-growth-oil-100ml"
-  },
-  {
-    category: "Skin care",
-    name: "Body Butter for Men",
-    size: "250ml",
-    price: "GH₵60.00",
-    description: "A 250ml Body Butter for Men from the Jay Fanks skin-care collection.",
-    image: "/products/body-butter-men.png",
-    productUrl: "https://jayfanks.com/product/body-butter-for-men/",
-    interest: "body-butter-men"
-  },
-  {
-    category: "Hair care",
-    name: "Hair Butter",
-    size: "150ml",
-    price: "GH₵35.00",
-    description: "A 150ml Hair Butter from the Jay Fanks hair-care collection.",
-    image: "/products/hair-butter-150ml.jpg",
-    productUrl: "https://jayfanks.com/product/hair-butter-150ml/",
-    interest: "hair-butter-150ml"
-  },
-  {
-    category: "Hair care",
-    name: "Hair Butter for Men",
-    size: "150ml",
-    price: "GH₵35.00",
-    description: "A 150ml Hair Butter for Men from the Jay Fanks hair-care collection.",
-    image: "/products/hair-butter-men.png",
-    productUrl: "https://jayfanks.com/product/jay-fanks-hair-butter-for-men/",
-    interest: "hair-butter-men"
-  },
-  {
-    category: "Hair care",
-    name: "Hair Growth Shampoo",
-    size: "250ml",
-    price: "GH₵40.00",
-    description: "A 250ml Hair Growth Shampoo from the Jay Fanks hair-care collection.",
-    image: "/products/hair-growth-shampoo-250ml.jpg",
-    productUrl: "https://jayfanks.com/product/jay-fanks-hair-growth-shampoo-250ml/",
-    interest: "hair-growth-shampoo-250ml"
-  },
-  {
-    category: "Hair care",
-    name: "Mmofra Hair Conditioner",
-    size: "250ml",
-    price: "GH₵40.00",
-    description: "A 250ml conditioner from the Jay Fanks Mmofra hair-care range.",
-    image: "/products/mmofra-conditioner-250ml.jpg",
-    productUrl: "https://jayfanks.com/product/mmofra-hair-conditioner-250ml/",
-    interest: "mmofra-conditioner-250ml"
-  },
-  {
-    category: "Hair care",
-    name: "Shampoo",
-    size: "500ml",
-    price: "GH₵70.00",
-    description: "A 500ml shampoo from the Jay Fanks hair-care collection.",
-    image: "/products/shampoo-500ml.jpg",
-    productUrl: "https://jayfanks.com/product/shampoo-500ml/",
-    interest: "shampoo-500ml"
-  },
-  {
-    category: "Skin care",
-    name: "Mmofra Shea",
-    size: "150ml",
-    price: "GH₵35.00",
-    description: "A 150ml shea product from the Jay Fanks Mmofra range.",
-    image: "/products/mmofra-shea-150ml.jpg",
-    productUrl: "https://jayfanks.com/product/mmofra-shea-150ml/",
-    interest: "mmofra-shea-150ml"
-  },
-  {
-    category: "Skin care",
-    name: "Mmofra Shea",
-    size: "250ml",
-    price: "GH₵60.00",
-    description: "A 250ml shea product from the Jay Fanks Mmofra range.",
-    image: "/products/mmofra-shea-250ml.jpg",
-    productUrl: "https://jayfanks.com/product/mmofra-shea-250ml/",
-    interest: "mmofra-shea-250ml"
-  }
-];
+import { products } from "@/lib/products";
 
 type FormStatus = {
   message: string;
@@ -188,10 +13,12 @@ export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [status, setStatus] = useState<FormStatus | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const successButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (formOpen) return;
@@ -209,13 +36,21 @@ export default function Home() {
     nameInputRef.current?.focus();
     if (isSubmitting) return;
 
-    let timer = window.setTimeout(() => setFormOpen(false), 60000);
+    let timer = window.setTimeout(() => {
+      setStatus(null);
+      setSelectedInterests([]);
+      setFormOpen(false);
+    }, 60000);
     const resetTimer = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => setFormOpen(false), 60000);
+      timer = window.setTimeout(() => {
+        setStatus(null);
+        setSelectedInterests([]);
+        setFormOpen(false);
+      }, 60000);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFormOpen(false);
+      if (event.key === "Escape") returnToShowcase();
     };
     const panel = panelRef.current;
     panel?.addEventListener("pointerdown", resetTimer);
@@ -234,13 +69,19 @@ export default function Home() {
     };
   }, [formOpen, isSubmitting]);
 
+  useEffect(() => {
+    if (status?.tone === "success") successButtonRef.current?.focus();
+  }, [status]);
+
   function openForm() {
     setStatus(null);
+    setSelectedInterests([products[activeSlide].interest]);
     setFormOpen(true);
   }
 
   function returnToShowcase() {
     formRef.current?.reset();
+    setSelectedInterests([]);
     setStatus(null);
     setFormOpen(false);
   }
@@ -250,11 +91,17 @@ export default function Home() {
     if (!formRef.current?.reportValidity()) return;
 
     const values = new FormData(event.currentTarget);
+    const interests = values.getAll("interests").map(String);
+    if (interests.length === 0) {
+      setStatus({ message: "Please choose at least one product.", tone: "error" });
+      return;
+    }
+
     const payload = {
       name: String(values.get("name") ?? "").trim(),
       email: String(values.get("email") ?? "").trim(),
       phone: String(values.get("phone") ?? "").trim(),
-      interest: String(values.get("interest") ?? ""),
+      interests,
       consent: values.get("consent") === "on",
       submittedAt: new Date().toISOString()
     };
@@ -263,7 +110,7 @@ export default function Home() {
     setStatus(null);
 
     try {
-      const response = await fetch("/api/leads", {
+      const response = await fetch("/api/customer", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -272,11 +119,18 @@ export default function Home() {
         body: JSON.stringify(payload)
       });
 
+      if (response.status === 400) {
+        const { error } = (await response.json().catch(() => ({}))) as { error?: string };
+        setStatus({ message: error ?? "Please check your details and try again.", tone: "error" });
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`The server returned ${response.status}.`);
       }
 
       formRef.current?.reset();
+      setSelectedInterests([]);
       setStatus({
         message: "Thank you — the Jay Fanks team has received your details.",
         tone: "success"
@@ -444,20 +298,37 @@ export default function Home() {
                     placeholder="+233 24 037 1188"
                   />
                 </div>
-                <div className="field">
-                  <label htmlFor="interest">I&apos;m interested in</label>
-                  <select id="interest" name="interest" defaultValue={product.interest}>
-                    <option value="">Select a product</option>
-                    {products.map((item) => (
-                      <option key={item.interest} value={item.interest}>
-                        {item.name} {item.size}
-                      </option>
-                    ))}
-                    <option value="other">Another Jay Fanks product</option>
-                    <option value="all">The whole collection</option>
-                  </select>
-                </div>
               </div>
+              <fieldset className="product-selection">
+                <legend>Products you&apos;re interested in <span aria-hidden="true">*</span></legend>
+                <p className="selection-hint">
+                  {selectedInterests.length} selected · Choose one or more products.
+                </p>
+                <div className="product-choice-list">
+                  {products.map((item) => (
+                    <label className="product-choice" key={item.interest}>
+                      <input
+                        type="checkbox"
+                        name="interests"
+                        value={item.interest}
+                        checked={selectedInterests.includes(item.interest)}
+                        onChange={(event) => {
+                          setSelectedInterests((current) =>
+                            event.target.checked
+                              ? [...current, item.interest]
+                              : current.filter((interest) => interest !== item.interest)
+                          );
+                        }}
+                      />
+                      <span className="product-choice-copy">
+                        <strong>{item.name}</strong>
+                        <span>{item.size}{item.price ? ` · ${item.price}` : ""}</span>
+                      </span>
+                      <span className="product-choice-category">{item.category}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label className="consent" htmlFor="consent">
                 <input id="consent" name="consent" type="checkbox" required />
                 <span>
@@ -498,7 +369,46 @@ export default function Home() {
         >
           CX-059-6102, MV484 Neptune Street, Kasoa Adom Estates
         </a>
+        <a className="admin-link" href="/admin">Admin</a>
       </footer>
+
+      {status?.tone === "success" && (
+        <div
+          className="success-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) returnToShowcase();
+          }}
+        >
+          <section
+            className="success-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="success-title"
+            aria-describedby="success-description"
+            onKeyDown={(event) => {
+              if (event.key === "Tab") {
+                event.preventDefault();
+                successButtonRef.current?.focus();
+              }
+            }}
+          >
+            <div className="success-mark" aria-hidden="true">✓</div>
+            <p className="eyebrow">Submission received</p>
+            <h2 id="success-title">Thank you!</h2>
+            <p id="success-description">
+              Your details have been sent successfully. The Jay Fanks team will be in touch.
+            </p>
+            <button
+              ref={successButtonRef}
+              className="primary-button"
+              type="button"
+              onClick={returnToShowcase}
+            >
+              Back to the product showcase
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
