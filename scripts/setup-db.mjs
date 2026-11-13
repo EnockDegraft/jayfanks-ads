@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import postgres from "postgres";
 import { connectionOptions } from "../lib/pg-options.ts";
 
-const TABLES = ["customers", "admin_users", "admin_sessions", "admin_login_attempts"];
+const TABLES = ["customers", "admin_users", "admin_sessions", "admin_login_attempts", "sms_messages"];
 
 const url = process.env.DATABASE_URL;
 if (!url) {

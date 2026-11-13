@@ -18,7 +18,7 @@ npm run dev
 
 The kiosk is at `/`, the admin page at `/admin`. `npm run admin:create` with an existing email resets that admin's password and signs out their sessions. The scripts need Node.js 22.18 or later.
 
-When deploying (e.g. Vercel), set `DATABASE_URL` in the host's environment variables.
+**Production uses its own restricted login, not the owner password.** `npm run db:app-credentials` gives the `kiosk_app` database role a new random password and writes its `DATABASE_URL` to `.env.production.local` (git-ignored). That login can save and read submissions, check admin passwords, and manage sessions. It can't change or delete customers, change admin accounts, or alter tables. Put that value in Vercel as a **Sensitive** variable for Production only. Re-run the command to rotate the password, then update Vercel and redeploy. Keep the owner `DATABASE_URL` in `.env.local` for `db:setup` and `admin:create` only.
 
 **Keep customer data out of the Supabase browser API.** `db:setup` turns on row level security and removes the `anon`/`authenticated` roles' access to these tables, so the publishable key can't read them. Don't add RLS policies or Supabase client queries for these tables in frontend code. Everything goes through the `/api` routes.
 
@@ -32,6 +32,44 @@ Body: `name` (required), `email` (required), `phone` (optional), `interests` (ar
 
 `201 { "ok": true }` · `400` validation message · `413` / `415` malformed request · `500` database unavailable.
 
+After responding, the server texts the customer a confirmation through the Nalo Solutions SMS API, if the `NALO_SMS_*` settings are present (see `.env.example`):
+
+```
+Hello Ama Mensah,
+Thank you for visiting our stands! Hope you enjoy using our product, we'll contact you soon for your feedback.
+Items interested in -
+1. Mmofra Leave-In Detangler 250ml
+2. Body Butter 500ml
+
+Contact us on 0242334770
+~Jayfanks Team
+```
+
+This is the default template, built in `lib/sms-format.ts`. Items are the product names and sizes from `lib/products.ts`.
+
+- Only Ghana mobile numbers get a text. Other numbers, landlines and blank phones are skipped.
+- Every submission sends a confirmation. There's no per-number or daily limit, so the same number submitting twice gets two texts.
+- Admins never receive SMS: a submission whose email matches an admin account isn't texted.
+- The name goes into the message only if it's plain words of letters (up to 40 characters). Anything with digits, dots or symbols becomes "Hello there", so nobody can put their own text or links in a message sent under the Jay Fanks name.
+- A failed SMS never affects the submission.
+
+### `POST /api/send-sms` (admin only)
+
+Sends one SMS and returns the gateway's response. It needs a signed-in admin session, the same cookie as the admin page.
+
+Body: `{ "phone": "024 000 0000", "message": "...", "customerId"?: "12" }` (no length limit; long messages go out as several SMS parts). With `customerId` and no `phone`, the customer's saved number is used. With `customerId` and no `message`, the default template above is sent for that customer.
+
+`200` sent · `502` gateway refused it · body `{ "logId", "status", "code", "jobId", "httpStatus", "response" }`, where `response` is the gateway's raw reply. Also `400` bad phone, or no message and no `customerId` · `401` not signed in · `403` that customer is an admin · `404` unknown customer · `503` SMS not configured.
+
+### SMS log
+
+Every attempt, automatic or manual, is a row in `sms_messages`. The row holds `status` (`pending`, `sent`, `failed`), the gateway's `provider_code` (`1701` accepted; `1707` invalid sender ID; `1025` out of credit), `job_id`, `http_status`, the full `response` as JSON, and `admin_id` for manual sends. The server log prints one line per attempt with the same details, without the phone number. To see recent failures in the Supabase SQL editor:
+
+```sql
+select created_at, status, provider_code, http_status, response
+from sms_messages where status <> 'sent' order by id desc limit 20;
+```
+
 ### Admin
 
 The session is an HttpOnly cookie that page JavaScript can't read. Browser `fetch` calls from the same site send it automatically. No password or secret is ever sent to, or stored in, the browser.
@@ -41,7 +79,7 @@ The session is an HttpOnly cookie that page JavaScript can't read. Browser `fetc
 | `POST /api/admin/login` | Body `{ "email", "password" }`. Sets the session cookie (12 hours). | `200 { "admin": { "email" } }` · `400` · `401` wrong email or password · `429` too many attempts (see `Retry-After`) |
 | `POST /api/admin/logout` | Ends the session in the database and clears the cookie. | `200 { "ok": true }` |
 | `GET /api/admin/session` | Who is signed in. | `200 { "admin": { "email", "expiresAt" } }` · `401` |
-| `GET /api/admin/customers?page=1&pageSize=50` | Submissions, newest first (`pageSize` max 200). | `200 { "customers": [{ "id", "name", "email", "phone", "interests": [], "consent", "createdAt" }], "page", "pageSize", "total" }` · `401` |
+| `GET /api/admin/customers?page=1&pageSize=50` | Submissions, newest first (`pageSize` max 200). | `200 { "customers": [{ "id", "name", "email", "phone", "interests": [], "consent", "createdAt", "smsStatus": "sent" \| "failed" \| "pending" \| null }], "page", "pageSize", "total" }` · `401` |
 
 Server components and server actions under `/admin` can call `getAdminSession()` from `lib/auth.ts`. It returns the signed-in admin or `null`.
 

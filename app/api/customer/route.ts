@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { getDb } from "@/lib/db";
 import { describeError, jsonError, readJson } from "@/lib/http";
 import { interestValues } from "@/lib/products";
+// import { sendSubmissionSms } from "@/lib/sms";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[\d\s().-]{6,25}$/;
@@ -46,16 +48,31 @@ export async function POST(request: Request) {
   const result = validate(body);
   if (typeof result === "string") return jsonError(400, result);
 
+  let customerId: string;
   try {
     const sql = getDb();
-    await sql`
+    const [row] = await sql<{ id: string }[]>`
       insert into customers (name, email, phone, interests, consent)
       values (${result.name}, ${result.email}, ${result.phone}, ${result.interests}::text[], ${result.consent})
+      returning id
     `;
+
+    // customerId = row.id;
+    // sendSubmissionSms({ id: customerId, ...result }).catch((err) =>
+    //   console.error(`SMS step failed for customer ${customerId}:`, describeError(err))
+    // )
+    
   } catch (err) {
     console.error("Could not save customer:", describeError(err));
     return jsonError(500, "We couldn't save your details. Please try again.");
   }
+
+// Runs after the kiosk has its response, so a slow or failing SMS gateway never holds it up.
+//   after(() =>
+//     sendSubmissionSms({ id: customerId, ...result }).catch((err) =>
+//       console.error(`SMS step failed for customer ${customerId}:`, describeError(err))
+//     )
+//   );
 
   return Response.json({ ok: true }, { status: 201 });
 }

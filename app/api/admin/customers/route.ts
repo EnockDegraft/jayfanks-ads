@@ -12,6 +12,7 @@ type CustomerRow = {
   interests: string[];
   consent: boolean;
   createdAt: Date;
+  smsStatus: "pending" | "sent" | "failed" | null; // latest confirmation SMS; null if none was sent
 };
 
 function positiveInt(value: string | null, fallback: number): number {
@@ -32,9 +33,11 @@ export async function GET(request: Request) {
     const sql = getDb();
     const [customers, [{ total }]] = await Promise.all([
       sql<CustomerRow[]>`
-        select id, name, email, phone, interests, consent, created_at as "createdAt"
-        from customers
-        order by created_at desc, id desc
+        select c.id, c.name, c.email, c.phone, c.interests, c.consent, c.created_at as "createdAt",
+          (select s.status from sms_messages s where s.customer_id = c.id order by s.id desc limit 1)
+            as "smsStatus"
+        from customers c
+        order by c.created_at desc, c.id desc
         limit ${pageSize} offset ${(page - 1) * pageSize}
       `,
       sql<{ total: string }[]>`select count(*) as total from customers`
