@@ -1,8 +1,7 @@
-import { after } from "next/server";
 import { getDb } from "@/lib/db";
 import { describeError, jsonError, readJson } from "@/lib/http";
 import { interestValues } from "@/lib/products";
-// import { sendSubmissionSms } from "@/lib/sms";
+import { sendSubmissionSms } from "@/lib/sms";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[\d\s().-]{6,25}$/;
@@ -57,22 +56,21 @@ export async function POST(request: Request) {
       returning id
     `;
 
-    // customerId = row.id;
-    // sendSubmissionSms({ id: customerId, ...result }).catch((err) =>
-    //   console.error(`SMS step failed for customer ${customerId}:`, describeError(err))
-    // )
-    
+    customerId = row.id;
   } catch (err) {
     console.error("Could not save customer:", describeError(err));
     return jsonError(500, "We couldn't save your details. Please try again.");
   }
 
-// Runs after the kiosk has its response, so a slow or failing SMS gateway never holds it up.
-//   after(() =>
-//     sendSubmissionSms({ id: customerId, ...result }).catch((err) =>
-//       console.error(`SMS step failed for customer ${customerId}:`, describeError(err))
-//     )
-//   );
+  // Sent before responding, so the server can't be stopped before the SMS goes out (on Vercel,
+  // work left running after the response can be cut off). The gateway call times out after 15s.
+  // The real email and products are needed: the email skips admins, the products fill the list.
+  // A failed SMS is logged in sms_messages and the server log, and never fails the submission.
+  try {
+    await sendSubmissionSms({ id: customerId, ...result });
+  } catch (err) {
+    console.error(`SMS step failed for customer ${customerId}:`, describeError(err));
+  }
 
   return Response.json({ ok: true }, { status: 201 });
 }
