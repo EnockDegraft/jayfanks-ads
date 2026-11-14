@@ -59,11 +59,15 @@ Sends one SMS and returns the gateway's response. It needs a signed-in admin ses
 
 Body: `{ "phone": "024 000 0000", "message": "...", "customerId"?: "12" }` (no length limit; long messages go out as several SMS parts). With `customerId` and no `phone`, the customer's saved number is used. With `customerId` and no `message`, the default template above is sent for that customer.
 
-`200` sent · `502` gateway refused it · body `{ "logId", "status", "code", "jobId", "httpStatus", "response" }`, where `response` is the gateway's raw reply. Also `400` bad phone, or no message and no `customerId` · `401` not signed in · `403` that customer is an admin · `404` unknown customer · `503` SMS not configured.
+`200` sent · `502` gateway refused it · body `{ "logId", "status", "code", "jobId", "msisdn", "httpStatus", "response" }`, where `response` is the gateway's raw reply. Also `400` bad phone, or no message and no `customerId` · `401` not signed in · `403` that customer is an admin · `404` unknown customer · `503` SMS not configured.
 
 ### SMS log
 
-Every attempt, automatic or manual, is a row in `sms_messages`. The row holds `status` (`pending`, `sent`, `failed`), the gateway's `provider_code` (`1701` accepted; `1707` invalid sender ID; `1025` out of credit), `job_id`, `http_status`, the full `response` as JSON, and `admin_id` for manual sends. The server log prints one line per attempt with the same details, without the phone number. To see recent failures in the Supabase SQL editor:
+Every attempt, automatic or manual, is a row in `sms_messages`. The row holds `status` (`pending`, `sent`, `failed`), the gateway's `provider_code` (`1701` accepted; `1707` invalid sender ID; `1025` out of credit), `job_id`, `http_status`, the full `response` as JSON, and `admin_id` for manual sends. The server log prints one line per attempt with the same details, without the phone number.
+
+`sent` means Nalo accepted the message (`1701`), not that the phone received it. If messages are `sent` but never arrive, check that `NALO_SMS_SENDER_ID` matches an ACTIVE sender ID on the Nalo portal's Sender IDs page exactly, capitals included: Nalo accepted `Jayfanks`, but the approved ID is `JayFanks`, so texts sent as `Jayfanks` were dropped. To check a single message, look up its `job_id` in the portal's reports.
+
+To see recent failures in the Supabase SQL editor:
 
 ```sql
 select created_at, status, provider_code, http_status, response
