@@ -289,13 +289,14 @@ export default function Home() {
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="phone">Phone number <span aria-hidden="true">(optional)</span></label>
+                  <label htmlFor="phone">Phone number <span aria-hidden="true">*</span></label>
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
                     autoComplete="tel"
                     placeholder="+233 24 037 1188"
+                    required
                   />
                 </div>
               </div>
@@ -330,7 +331,7 @@ export default function Home() {
                 </div>
               </fieldset>
               <label className="consent" htmlFor="consent">
-                <input id="consent" name="consent" type="checkbox" required />
+                <input id="consent" name="consent" type="checkbox" />
                 <span>
                   I agree to be contacted by Jay Fanks about its products. I can ask to stop at any time.
                 </span>

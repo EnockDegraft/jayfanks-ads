@@ -5,7 +5,10 @@ import { getDb } from "@/lib/db";
 import { products } from "@/lib/products";
 import { confirmationMessage, toGhanaMobile } from "@/lib/sms-format";
 
+// const DEFAULT_API_URL = "https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/";
+
 const DEFAULT_API_URL = "https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/";
+
 const SUCCESS = "1701";
 const TIMEOUT_MS = 15_000;
 
@@ -19,6 +22,7 @@ export type GatewayResult = {
   status: "sent" | "failed";
   code: string; // 1701 = accepted; 1707, 1025, ... = gateway errors; or "timeout" / "network error"
   jobId: string | null;
+  msisdn: string | null; // the phone number the gateway echoed back, or null if it didn't
   httpStatus: number | null;
   response: unknown; // the gateway's reply as JSON (or its raw text), stored in sms_messages.response
 };
@@ -51,15 +55,16 @@ async function callGateway(config: SmsConfig, msisdn: string, message: string): 
     const status = fields.status ?? fields.code;
     if (response.ok && String(status) === SUCCESS) {
       const jobId = typeof fields.job_id === "string" ? fields.job_id : null;
-      return { status: "sent", code: SUCCESS, jobId, httpStatus: response.status, response: body };
+      const msisdn = typeof fields.msisdn === "string" ? fields.msisdn : null;
+      return { status: "sent", code: SUCCESS, jobId, msisdn, httpStatus: response.status, response: body };
     }
     // A gateway code such as 1707 (invalid sender) or 1025 (no credit), else the HTTP status and
     // the fields it rejected (not their values, which can include the phone number).
     const code = status !== undefined ? String(status) : `http ${response.status} ${Object.keys(fields).join(",")}`;
-    return { status: "failed", code: code.trim().slice(0, 60), jobId: null, httpStatus: response.status, response: body };
+    return { status: "failed", code: code.trim().slice(0, 60), jobId: null, msisdn: null, httpStatus: response.status, response: body };
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "TimeoutError";
-    return { status: "failed", code: timedOut ? "timeout" : "network error", jobId: null, httpStatus: null, response: null };
+    return { status: "failed", code: timedOut ? "timeout" : "network error", jobId: null, msisdn: null, httpStatus: null, response: null };
   }
 }
 
@@ -140,13 +145,15 @@ export async function sendSubmissionSms(customer: SmsCustomer) {
 }
 
 /** An SMS an admin sends by hand (POST /api/send-sms). No limits; logged with the admin's ID. */
-export async function sendAdminSms(input: {
-  config: SmsConfig;
-  adminId: string;
-  msisdn: string;
-  message: string;
-  customerId: string | null;
-}) {
+export async function sendAdminSms(
+  input: {
+    config: SmsConfig;
+    adminId: string;
+    msisdn: string;
+    message: string;
+    customerId: string | null;
+  }
+) {
   const sql = getDb();
   const [row] = await sql<{ id: string }[]>`
     insert into sms_messages (customer_id, admin_id, msisdn, status)
