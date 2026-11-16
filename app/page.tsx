@@ -9,8 +9,12 @@ type FormStatus = {
   tone: "success" | "error";
 };
 
+/** How long each product stays on screen while nobody is using the kiosk. */
+const SLIDE_INTERVAL_MS = 6500;
+/** How long after a customer last touches the showcase before it scrolls on its own again. */
+const IDLE_RESUME_MS = 10000;
+
 export default function Home() {
-  const [activeSlide, setActiveSlide] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -19,16 +23,54 @@ export default function Home() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const successButtonRef = useRef<HTMLButtonElement>(null);
+  const trackRef = useRef<HTMLElement>(null);
+  // The slide in view. A ref, not state: it changes on every swipe and nothing re-renders from it.
+  const currentSlideRef = useRef(0);
 
   useEffect(() => {
     if (formOpen) return;
+    const track = trackRef.current;
+    if (!track) return;
 
-    const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % products.length);
-    }, 6500);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const scrollToSlide = (index: number, behavior: ScrollBehavior) =>
+      track.scrollTo({ left: index * track.clientWidth, behavior });
 
-    return () => window.clearInterval(timer);
-  }, [activeSlide, formOpen]);
+    // Coming back from the form: land on the product the customer asked about.
+    scrollToSlide(currentSlideRef.current, "instant");
+
+    let timer = 0;
+    const schedule = (delay: number) => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(advance, delay);
+    };
+    const advance = () => {
+      const next = (currentSlideRef.current + 1) % products.length;
+      scrollToSlide(next, reduceMotion.matches ? "instant" : "smooth");
+      schedule(SLIDE_INTERVAL_MS);
+    };
+    // Any touch, swipe, wheel or key press hands control to the customer until they go idle.
+    const pause = () => schedule(IDLE_RESUME_MS);
+    const trackSlide = () => {
+      if (track.clientWidth === 0) return;
+      const index = Math.round(track.scrollLeft / track.clientWidth);
+      currentSlideRef.current = Math.min(Math.max(index, 0), products.length - 1);
+    };
+    const realign = () => scrollToSlide(currentSlideRef.current, "instant");
+
+    const interactions = ["pointerdown", "wheel", "keydown", "focusin"] as const;
+    interactions.forEach((type) => track.addEventListener(type, pause, { passive: true }));
+    track.addEventListener("scroll", trackSlide, { passive: true });
+    window.addEventListener("resize", realign);
+    schedule(SLIDE_INTERVAL_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+      interactions.forEach((type) => track.removeEventListener(type, pause));
+      track.removeEventListener("scroll", trackSlide);
+      window.removeEventListener("resize", realign);
+    };
+  }, [formOpen]);
 
   useEffect(() => {
     if (!formOpen) return;
@@ -73,9 +115,10 @@ export default function Home() {
     if (status?.tone === "success") successButtonRef.current?.focus();
   }, [status]);
 
-  function openForm() {
+  function openForm(index: number) {
+    currentSlideRef.current = index;
     setStatus(null);
-    setSelectedInterests([products[activeSlide].interest]);
+    setSelectedInterests([products[index].interest]);
     setFormOpen(true);
   }
 
@@ -146,10 +189,8 @@ export default function Home() {
     }
   }
 
-  const product = products[activeSlide];
-
   return (
-    <div className="shell">
+    <div className={formOpen ? "shell" : "shell kiosk"}>
       <header className="topbar">
         <a className="brand-link" href="https://jayfanks.com" aria-label="Jay Fanks home">
           <Image
@@ -157,100 +198,59 @@ export default function Home() {
             src="/jayfanks-logo.png"
             alt="Jay Fanks"
             width={145}
-            height={94}
+            height={93}
             style={{ width: "145px", height: "auto" }}
-            priority
+            preload
           />
         </a>
-        <div className="top-note">100% natural hair &amp; skin care</div>
       </header>
 
       <main>
         {!formOpen ? (
-          <section className="showcase" aria-label="Jay Fanks products">
-            <div className="copy">
-              <p className="eyebrow">{product.category}</p>
-              <h1>{product.name}</h1>
-              <div className="product-details">
-                <span>{product.size}</span>
-                <span>{product.price || "Visit shop for price"}</span>
-              </div>
-              <p className="description">{product.description}</p>
-              <button className="primary-button" type="button" onClick={openForm}>
-                Ask about this product <span className="button-arrow" aria-hidden="true">→</span>
-              </button>
-              <a
-                className="shop-link"
-                href={product.productUrl}
-                target="_blank"
-                rel="noreferrer"
+          <section
+            className="showcase"
+            ref={trackRef}
+            aria-roledescription="carousel"
+            aria-label="Jay Fanks products"
+          >
+            {products.map((item, index) => (
+              <article
+                className="slide"
+                key={item.interest}
+                aria-roledescription="slide"
+                aria-label={`${index + 1} of ${products.length}`}
               >
-                Shop {product.name} <span aria-hidden="true">↗</span>
-              </a>
-            </div>
-
-            <div className="stage-wrap">
-              <button
-                className="product-stage"
-                type="button"
-                onClick={openForm}
-                aria-label={`Ask us about ${product.name}`}
-              >
-                <span className="stage-label">{product.category}</span>
-                <span className="product-art" key={activeSlide}>
+                {/* Tapping the photo is a shortcut for touch users; the button below is the accessible control. */}
+                <div className="slide-photo" onClick={() => openForm(index)}>
                   <Image
-                    className="product-photo"
-                    src={product.image}
-                    alt={product.name}
+                    className="slide-backdrop"
+                    src={item.image}
+                    alt=""
+                    aria-hidden="true"
                     fill
-                    sizes="(max-width: 760px) 90vw, 42vw"
-                    priority={activeSlide === 0}
+                    sizes="64px"
+                    loading="eager"
                   />
-                </span>
-                <span className="product-card-info">
-                  <span>
-                    <strong>{product.name}</strong>
-                    <span className="product-size">{product.size}</span>
-                  </span>
-                  {product.price && <span className="product-price">{product.price}</span>}
-                </span>
-              </button>
-              <div className="slide-controls" aria-label="Product slideshow controls">
-                <button
-                  className="slide-arrow"
-                  type="button"
-                  aria-label="Previous product"
-                  onClick={() =>
-                    setActiveSlide((current) => (current - 1 + products.length) % products.length)
-                  }
-                >
-                  <span aria-hidden="true">←</span>
-                </button>
-                <div className="dots">
-                  {products.map((item, index) => (
-                    <button
-                      className="dot"
-                      key={item.interest}
-                      type="button"
-                      aria-label={`Show ${item.name} ${item.size}`}
-                      aria-current={index === activeSlide ? "true" : undefined}
-                      onClick={() => setActiveSlide(index)}
-                    />
-                  ))}
+                  <Image
+                    className="slide-image"
+                    src={item.image}
+                    alt={`${item.name} ${item.size}`}
+                    fill
+                    sizes="100vw"
+                    loading="eager"
+                    preload={index === 0}
+                  />
                 </div>
-                <span className="slide-count" aria-live="polite">
-                  {String(activeSlide + 1).padStart(2, "0")} / {String(products.length).padStart(2, "0")}
-                </span>
-                <button
-                  className="slide-arrow"
-                  type="button"
-                  aria-label="Next product"
-                  onClick={() => setActiveSlide((current) => (current + 1) % products.length)}
-                >
-                  <span aria-hidden="true">→</span>
-                </button>
-              </div>
-            </div>
+                <div className="slide-caption">
+                  <h2 className="slide-name">
+                    {item.name} <span className="slide-size">{item.size}</span>
+                  </h2>
+                  <button className="primary-button" type="button" onClick={() => openForm(index)}>
+                    Ask about this product <span className="button-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </article>
+            ))}
           </section>
         ) : (
           <section className="form-panel" aria-labelledby="form-title" ref={panelRef}>
