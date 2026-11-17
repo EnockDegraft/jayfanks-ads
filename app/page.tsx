@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { products } from "@/lib/products";
+import { products, slides } from "@/lib/products";
 
 type FormStatus = {
   message: string;
@@ -45,7 +45,7 @@ export default function Home() {
       timer = window.setTimeout(advance, delay);
     };
     const advance = () => {
-      const next = (currentSlideRef.current + 1) % products.length;
+      const next = (currentSlideRef.current + 1) % slides.length;
       scrollToSlide(next, reduceMotion.matches ? "instant" : "smooth");
       schedule(SLIDE_INTERVAL_MS);
     };
@@ -54,7 +54,7 @@ export default function Home() {
     const trackSlide = () => {
       if (track.clientWidth === 0) return;
       const index = Math.round(track.scrollLeft / track.clientWidth);
-      currentSlideRef.current = Math.min(Math.max(index, 0), products.length - 1);
+      currentSlideRef.current = Math.min(Math.max(index, 0), slides.length - 1);
     };
     const realign = () => scrollToSlide(currentSlideRef.current, "instant");
 
@@ -118,7 +118,7 @@ export default function Home() {
   function openForm(index: number) {
     currentSlideRef.current = index;
     setStatus(null);
-    setSelectedInterests([products[index].interest]);
+    setSelectedInterests(slides[index].interests);
     setFormOpen(true);
   }
 
@@ -213,18 +213,18 @@ export default function Home() {
             aria-roledescription="carousel"
             aria-label="Jay Fanks products"
           >
-            {products.map((item, index) => (
+            {slides.map((slide, index) => (
               <article
                 className="slide"
-                key={item.interest}
+                key={slide.image}
                 aria-roledescription="slide"
-                aria-label={`${index + 1} of ${products.length}`}
+                aria-label={`${index + 1} of ${slides.length}`}
               >
                 {/* Tapping the photo is a shortcut for touch users; the button below is the accessible control. */}
                 <div className="slide-photo" onClick={() => openForm(index)}>
                   <Image
                     className="slide-backdrop"
-                    src={item.image}
+                    src={slide.image}
                     alt=""
                     aria-hidden="true"
                     fill
@@ -233,8 +233,8 @@ export default function Home() {
                   />
                   <Image
                     className="slide-image"
-                    src={item.image}
-                    alt={`${item.name} ${item.size}`}
+                    src={slide.image}
+                    alt={`${slide.title} ${slide.size ?? ""}`.trim()}
                     fill
                     sizes="100vw"
                     loading="eager"
@@ -243,7 +243,8 @@ export default function Home() {
                 </div>
                 <div className="slide-caption">
                   <h2 className="slide-name">
-                    {item.name} <span className="slide-size">{item.size}</span>
+                    {slide.title}
+                    {slide.size && <> <span className="slide-size">{slide.size}</span></>}
                   </h2>
                   <button className="primary-button" type="button" onClick={() => openForm(index)}>
                     Ask about this product <span className="button-arrow" aria-hidden="true">→</span>

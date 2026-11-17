@@ -2,6 +2,8 @@
 
 A Next.js App Router kiosk page for Jay Fanks hair and skin care, with an automatic product slideshow and a customer-interest form, plus a password-protected admin page for viewing submissions. The product images and logo are sourced from the Jay Fanks website.
 
+The showcase screens are the `slides` list in `lib/products.ts`: one per product that has an `image` (`public/products/`), then the client's own photos (`public/promos/`, `public/photoshoot/`, `public/custom-gifts/`). Each slide lists the product IDs its "Ask about this product" button ticks on the form.
+
 ## Run locally
 
 The data lives in Supabase Postgres. The backend connects to the database directly with `DATABASE_URL`; it doesn't use the Supabase publishable key.
